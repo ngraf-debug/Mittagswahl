@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mittagessen-Rad</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#f15a2a">
+<style>
+:root{--bg1:#fff4df;--bg2:#ffc9a9;--ink:#35261f;--accent:#f15a2a}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:linear-gradient(145deg,var(--bg1),var(--bg2));overflow-x:hidden}
+.app{width:min(94vw,620px);text-align:center;padding:24px 18px 32px}.card{background:#ffffffdd;backdrop-filter:blur(8px);border-radius:28px;padding:24px;box-shadow:0 18px 55px #5b2a171f}
+h1{margin:0 0 4px;font-size:clamp(28px,6vw,42px)}.sub{margin:0 0 20px;color:#795548}
+.wheel-wrap{position:relative;width:min(82vw,430px);aspect-ratio:1;margin:0 auto 22px}
+.pointer{position:absolute;z-index:5;left:50%;top:-8px;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:34px solid #35261f;filter:drop-shadow(0 3px 2px #0003)}
+#wheel{width:100%;height:100%;border-radius:50%;box-shadow:0 8px 25px #0002;border:10px solid white;transition:transform 4.2s cubic-bezier(.12,.72,.08,1);display:block}
+button{border:0;border-radius:999px;padding:15px 28px;font-weight:800;font-size:18px;background:var(--accent);color:white;box-shadow:0 8px 18px #f15a2a55;cursor:pointer}
+button:active{transform:translateY(2px)}button:disabled{opacity:.65;cursor:wait}
+#result{min-height:58px;margin-top:18px;font-size:clamp(22px,5vw,31px);font-weight:900;display:grid;place-items:center}
+.small{font-size:13px;color:#80675b;margin-top:8px}
+.confetti{position:fixed;top:-20px;z-index:99;pointer-events:none;animation:fall var(--d) linear forwards}
+@keyframes fall{to{transform:translate(var(--x),110vh) rotate(900deg);opacity:.8}}
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mittagessen">
+<meta name="theme-color" content="#f15a2a">
+
+</head>
+<body>
+<main class="app"><section class="card">
+<h1>🍽️ Mittagessen-Rad</h1><p class="sub">Wer dreht heute?</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px"><button onclick="setMode('normal')">Normal</button><button onclick="setMode('manuel')">Manuel 😇</button><button onclick="setMode('lukas')">Lukas 🍕</button></div>
+<div class="wheel-wrap"><div class="pointer"></div><canvas id="wheel" width="700" height="700"></canvas></div>
+<button id="spin">🎡 Rad drehen</button>
+<div id="result">Bereit?</div><div class="small">Alter Wirt · Döner · Burger · Panini Italiener · Asiatisch · Mal was anderes</div>
+</section></main>
+<script>
+let mode="normal"; let items=["Alter Wirt","Döner","Burger","Panini Italiener","Asiatisch","Mal was anderes"]; let emoji=["🍖","🥙","🍔","🥪","🍜","🎁"];
+function setMode(m){mode=m;if(m==="lukas"){items=["Pizza","Pizza","Pizza","Pizza","Pizza","Pizza"];emoji=["🍕","🍕","🍕","🍕","🍕","🍕"]}else{items=["Alter Wirt","Döner","Burger","Panini Italiener","Asiatisch","Mal was anderes"];emoji=["🍖","🥙","🍔","🥪","🍜","🎁"]}draw();document.getElementById("result").textContent=m==="manuel"?"Manuel-Modus 😇":m==="lukas"?"Lukas-Modus 🍕":"Normal-Modus"}
+const colors=["#ffd166","#ef476f","#06d6a0","#118ab2","#f78c6b","#9b5de5"];
+const c=document.getElementById("wheel"),ctx=c.getContext("2d"),N=items.length,arc=Math.PI*2/N;
+function draw(){
+ const r=c.width/2;ctx.clearRect(0,0,c.width,c.height);
+ for(let i=0;i<N;i++){const a=-Math.PI/2+i*arc;ctx.beginPath();ctx.moveTo(r,r);ctx.arc(r,r,r-6,a,a+arc);ctx.closePath();ctx.fillStyle=colors[i];ctx.fill();
+  ctx.save();ctx.translate(r,r);ctx.rotate(a+arc/2);ctx.textAlign="right";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.font="bold 29px system-ui";
+  let label=items[i]; if(label.length>16){ctx.fillText(emoji[i]+" "+label.slice(0,15),r-35,-16);ctx.fillText(label.slice(15),r-35,20)}else ctx.fillText(emoji[i]+" "+label,r-35,0);ctx.restore();
+ }
+ ctx.beginPath();ctx.arc(r,r,52,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.font="38px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🍴",r,r+2);
+} draw();
+let rotation=0,spinning=false;
+document.getElementById("spin").onclick=()=>{
+ if(spinning)return;spinning=true;const btn=document.getElementById("spin"),res=document.getElementById("result");btn.disabled=true;res.textContent="Das Rad dreht…";
+ const pool=mode==="manuel"?[0,2,3,4,5]:[0,1,2,3,4,5]; const pick=pool[Math.floor(Math.random()*pool.length)];
+ // Segment center should finish at the top pointer.
+ const target=-(pick*360/N+180/N);
+ const current=((rotation%360)+360)%360;
+ let delta=((target-current)%360+360)%360; rotation+=1440+delta;
+ c.style.transform=`rotate(${rotation}deg)`;
+ setTimeout(()=>{res.textContent=`🎉 ${emoji[pick]} ${items[pick]}!`;confetti();btn.disabled=false;btn.textContent="🔄 Nochmal drehen";spinning=false},4300);
+};
+function confetti(){
+ const cs=["#ef476f","#ffd166","#06d6a0","#118ab2","#9b5de5","#f15a2a"];
+ for(let i=0;i<180;i++){const e=document.createElement("i");e.className="confetti";e.style.left=Math.random()*100+"vw";e.style.width=6+Math.random()*9+"px";e.style.height=8+Math.random()*13+"px";e.style.background=cs[Math.floor(Math.random()*cs.length)];e.style.setProperty("--d",2.2+Math.random()*2.8+"s");e.style.setProperty("--x",(Math.random()*180-90)+"px");document.body.appendChild(e);setTimeout(()=>e.remove(),5200)}
+}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}</script>
+</body></html>
